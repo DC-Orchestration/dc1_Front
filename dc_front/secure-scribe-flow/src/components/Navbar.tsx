@@ -33,7 +33,8 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         </Button>
         
         <div className="flex items-center">
-          <Shield className="h-5 w-5 text-primary mr-2" />
+          {/* <Shield className="h-5 w-5 text-primary mr-2" /> */}
+          
           <span className="font-semibold text-lg hidden md:inline-block">SecureScribe</span>
         </div>
         

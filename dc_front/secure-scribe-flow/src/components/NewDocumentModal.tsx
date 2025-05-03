@@ -1,5 +1,3 @@
-
-
 import type React from "react"
 
 import { useState } from "react"
@@ -30,31 +28,30 @@ const userGroups = [
 ]
 
 export function NewDocumentModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  // Step management
   const [step, setStep] = useState<"create" | "permissions" | "success">("create")
 
-  // Document creation state
   const [isUploading, setIsUploading] = useState(false)
   const [fileName, setFileName] = useState("")
   const [documentTitle, setDocumentTitle] = useState("")
+  const [documentDescription, setDocumentDescription] = useState("")
+  const [documentType, setDocumentType] = useState("")
 
-  // Permissions state
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   const [permissionLevel, setPermissionLevel] = useState("view")
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFileName(e.target.files[0].name)
-      setDocumentTitle(e.target.files[0].name.split(".")[0]) // Set default title from filename
+      const file = e.target.files[0]
+      setFileName(file.name)
+      setDocumentTitle(file.name.split(".")[0])
     }
   }
 
   const handleUpload = () => {
     setIsUploading(true)
-    // Simulate upload process
     setTimeout(() => {
       setIsUploading(false)
-      setStep("permissions") // Move to permissions step
+      setStep("permissions")
     }, 1500)
   }
 
@@ -62,30 +59,54 @@ export function NewDocumentModal({ open, onOpenChange }: { open: boolean; onOpen
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     setDocumentTitle(formData.get("title") as string)
-    setStep("permissions") // Move to permissions step
+    setDocumentDescription(formData.get("description") as string)
+    setDocumentType(formData.get("documentType") as string)
+    setStep("permissions")
   }
 
   const handleGroupToggle = (groupId: string) => {
-    setSelectedGroups((prev) => (prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]))
+    setSelectedGroups((prev) =>
+      prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]
+    )
   }
 
-  const handlePermissionsSubmit = (e: React.FormEvent) => {
+  const handlePermissionsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate saving
-    setTimeout(() => {
+
+    // Construct document object
+    const documentData = {
+      title: documentTitle,
+      description: documentDescription,
+      type: documentType,
+      permissionLevel,
+      allowedGroups: selectedGroups,
+    }
+
+    try {
+      const res = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(documentData),
+      })
+
+      if (!res.ok) throw new Error("Failed to create document")
+
       setStep("success")
-      // Reset after 2 seconds and close
       setTimeout(() => {
         resetForm()
         onOpenChange(false)
       }, 2000)
-    }, 1000)
+    } catch (err) {
+      console.error("Error creating document:", err)
+    }
   }
 
   const resetForm = () => {
     setStep("create")
     setFileName("")
     setDocumentTitle("")
+    setDocumentDescription("")
+    setDocumentType("")
     setSelectedGroups([])
     setPermissionLevel("view")
   }
@@ -156,10 +177,9 @@ export function NewDocumentModal({ open, onOpenChange }: { open: boolean; onOpen
                         name="documentType"
                         className="w-full p-2 border border-gray-300 rounded-md"
                         defaultValue=""
+                        required
                       >
-                        <option value="" disabled>
-                          Select document type
-                        </option>
+                        <option value="" disabled>Select document type</option>
                         <option value="report">Report</option>
                         <option value="contract">Contract</option>
                         <option value="assessment">Assessment</option>
@@ -168,9 +188,7 @@ export function NewDocumentModal({ open, onOpenChange }: { open: boolean; onOpen
                     </div>
                   </div>
                   <DialogFooter className="mt-6">
-                    <Button type="submit" className="w-full">
-                      Create Document
-                    </Button>
+                    <Button type="submit" className="w-full">Create Document</Button>
                   </DialogFooter>
                 </form>
               </TabsContent>
@@ -199,9 +217,7 @@ export function NewDocumentModal({ open, onOpenChange }: { open: boolean; onOpen
                           checked={selectedGroups.includes(group.id)}
                           onCheckedChange={() => handleGroupToggle(group.id)}
                         />
-                        <Label htmlFor={group.id} className="font-normal">
-                          {group.name}
-                        </Label>
+                        <Label htmlFor={group.id} className="font-normal">{group.name}</Label>
                       </div>
                     ))}
                   </div>
@@ -210,34 +226,25 @@ export function NewDocumentModal({ open, onOpenChange }: { open: boolean; onOpen
                 <div>
                   <Label className="text-base font-medium">Permission Level</Label>
                   <RadioGroup
-                    defaultValue="view"
                     value={permissionLevel}
                     onValueChange={setPermissionLevel}
                     className="mt-3 space-y-3"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="view" id="view" />
-                      <Label htmlFor="view" className="font-normal">
-                        View Only
-                      </Label>
+                      <Label htmlFor="view">View Only</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="comment" id="comment" />
-                      <Label htmlFor="comment" className="font-normal">
-                        View & Comment
-                      </Label>
+                      <Label htmlFor="comment">View & Comment</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="edit" id="edit" />
-                      <Label htmlFor="edit" className="font-normal">
-                        View & Edit
-                      </Label>
+                      <Label htmlFor="edit">View & Edit</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="admin" id="admin" />
-                      <Label htmlFor="admin" className="font-normal">
-                        Full Access
-                      </Label>
+                      <Label htmlFor="admin">Full Access</Label>
                     </div>
                   </RadioGroup>
                 </div>
